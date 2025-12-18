@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Lucky Wheel Fixed</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        :root { --accent: #ff4757; --bg: #121212; }
+        body { 
+            display: flex; align-items: center; justify-content: center; 
+            height: 100vh; background: var(--bg); margin: 0; 
+            font-family: 'Segoe UI', sans-serif; overflow: hidden;
+        }
+        #container { position: relative; width: 350px; height: 350px; cursor: pointer; }
+        #pointer { 
+            position: absolute; top: -10px; left: 50%; transform: translateX(-50%);
+            width: 0; height: 0; border-left: 15px solid transparent; 
+            border-right: 15px solid transparent; border-top: 30px solid var(--accent); 
+            z-index: 100;
+        }
+        #wheel { width: 100%; height: 100%; transition: transform 5s cubic-bezier(0.15, 0, 0.15, 1); }
+        
+        /* Popup Styling */
+        #overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.9);
+            display: none; align-items: center; justify-content: center; z-index: 200;
+            backdrop-filter: blur(8px);
+        }
+        #modal {
+            background: #1e1e1e; padding: 40px; border-radius: 25px; text-align: center;
+            border: 2px solid var(--accent); color: white; transform: scale(0.8); transition: 0.3s;
+        }
+        #modal.active { transform: scale(1); }
+        #modal h2 { font-size: 28px; margin: 10px 0; color: var(--accent); }
+        #modal button {
+            background: var(--accent); color: white; border: none; padding: 12px 30px;
+            border-radius: 50px; font-weight: bold; cursor: pointer; margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="container" onclick="spinWheel()">
+        <div id="pointer"></div>
+        <svg id="wheel" viewBox="0 0 100 100">
+            <g id="wheel-content"></g>
+            <circle cx="50" cy="50" r="4" fill="white" stroke="#333" />
+        </svg>
+    </div>
+
+    <div id="overlay">
+        <div id="modal">
+            <p>YOU WON</p>
+            <h2 id="winner-name">---</h2>
+            <button onclick="closeModal()">SPIN AGAIN</button>
+        </div>
+    </div>
+
+    <script>
+        const segments = [
+            { name: "Prize 1", color: "#e74c3c" },
+            { name: "Prize 2", color: "#3498db" },
+            { name: "Prize 3", color: "#9b59b6" },
+            { name: "Prize 4", color: "#f1c40f" },
+            { name: "Prize 5", color: "#e67e22" },
+            { name: "Prize 6", color: "#2ecc71" },
+            { name: "Prize 7", color: "#1abc9c" },
+            { name: "Prize 8", color: "#34495e" }
+        ];
+
+        const wheelContent = document.getElementById('wheel-content');
+        const sliceAngle = 360 / segments.length;
+
+        segments.forEach((seg, i) => {
+            const startAngle = i * sliceAngle;
+            const x1 = 50 + 50 * Math.cos(Math.PI * startAngle / 180);
+            const y1 = 50 + 50 * Math.sin(Math.PI * startAngle / 180);
+            const x2 = 50 + 50 * Math.cos(Math.PI * (startAngle + sliceAngle) / 180);
+            const y2 = 50 + 50 * Math.sin(Math.PI * (startAngle + sliceAngle) / 180);
+
+            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            path.setAttribute("d", `M 50 50 L ${x1} ${y1} A 50 50 0 0 1 ${x2} ${y2} Z`);
+            path.setAttribute("fill", seg.color);
+            path.setAttribute("stroke", "rgba(255,255,255,0.2)");
+            wheelContent.appendChild(path);
+
+            // Add Image Support (1.png to 8.png)
+            const midAngle = startAngle + (sliceAngle / 2);
+            const imgX = 50 + 35 * Math.cos(Math.PI * midAngle / 180);
+            const imgY = 50 + 35 * Math.sin(Math.PI * midAngle / 180);
+            const img = document.createElementNS("http://www.w3.org/2000/svg", "image");
+            img.setAttribute("href", (i + 1) + ".png"); 
+            img.setAttribute("x", imgX - 6);
+            img.setAttribute("y", imgY - 6);
+            img.setAttribute("width", "12");
+            img.setAttribute("height", "12");
+            img.setAttribute("transform", `rotate(${midAngle + 90}, ${imgX}, ${imgY})`);
+            wheelContent.appendChild(img);
+        });
+
+        let rotation = 0;
+        let spinning = false;
+
+        function spinWheel() {
+            if (spinning) return;
+            spinning = true;
+            rotation += 1800 + Math.floor(Math.random() * 360);
+            document.getElementById('wheel').style.transform = `rotate(${rotation - 90}deg)`;
+
+            setTimeout(() => {
+                const normalized = (rotation % 360);
+                const winnerIndex = Math.floor((360 - normalized) / sliceAngle) % segments.length;
+                
+                // Confetti Effect
+                confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+                
+                document.getElementById('winner-name').innerText = segments[winnerIndex].name;
+                document.getElementById('overlay').style.display = 'flex';
+                setTimeout(() => document.getElementById('modal').classList.add('active'), 50);
+            }, 5000);
+        }
+
+        function closeModal() {
+            document.getElementById('modal').classList.remove('active');
+            setTimeout(() => {
+                document.getElementById('overlay').style.display = 'none';
+                spinning = false;
+            }, 300);
+        }
+    </script>
+</body>
+</html>
